@@ -1,6 +1,5 @@
 #include <Arduino.h>
 
-// include the libraries
 #include <Keypad.h>
 #include <LiquidCrystal.h>
 #include "GameMode.h"
@@ -50,23 +49,26 @@ char entered[6];
 PCF8574 ex1(0x24);
 
 // keypad setup
-const byte ROWS = 4; // four rows
-const byte COLS = 4; // four columns
+const byte ROWS = 4;
+const byte COLS = 4;
+
 char hexaKeys[ROWS][COLS] = {
-    {'D', '#', '0', '*'},
-    {'C', '9', '8', '7'},
-    {'B', '6', '5', '4'},
-    {'A', '3', '2', '1'}};
-byte colPins[COLS] = {2, 3, A5, A4};   // definition of colomn pins
-byte rowPins[ROWS] = {A3, A2, A1, A0}; // definition of row pins
+    {'1', '2', '3', 'A'},
+    {'4', '5', '6', 'B'},
+    {'7', '8', '9', 'C'},
+    {'*', '0', '#', 'D'}};
+
+byte rowPins[ROWS] = {9, 8, 7, 6};
+byte colPins[COLS] = {5, 4, 3, 2};
+
 Keypad keypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 
 // button setup
-int redButton = 8;
+int redButton = 12;
 int blueButton = 11;
 
 // buzzer setup
-int buzzer = 6;
+int buzzer = 10;
 
 GameMode *selectedGameMode;
 
@@ -103,25 +105,15 @@ void setup()
   lcd.print(selectedGameMode->Name);
   delay(3000);
   selectedGameMode->Start();
-  delay(3000);
+  delay(100);
 
   //(*selectedGameMode).Start();
 }
 
 void loop()
 {
-  // set the cursor to column 0, line 1
-  //(note: line 1 is the second row, since counting begins with 0):
-  //  lcd.clear();
-  //  lcd.setCursor(0, 1);
-  //  // print the number of seconds since reset:
-  //  //selectedGameMode->Start();
-  //  lcd.print(selectedGameMode->Name);
-  //  delay(1000);
-  //  lcd.print(millis() / 1000);
-
   // TODO: start the specific game mode
-
+  Serial.println("Main loop");
   isButtonPressed(redButton);
   isButtonPressed(blueButton);
   delay(500);
@@ -132,11 +124,12 @@ void isButtonPressed(int button)
   int buttonstatus = digitalRead(button);
   if (buttonstatus == HIGH) // Wenn der Taster gedrückt ist...
   {
-    tone(6, 100); // …spiele diesen Ton...
-    delay(500);   // …und zwar für eine Sekunde...
-    tone(6, 300); // …spiele diesen Ton...
-    delay(500);   // …und zwar für eine Sekunde...
-    noTone(6);    // Ton abschalten
+    Serial.println("Button pressed");
+    tone(buzzer, 100); // …spiele diesen Ton...
+    delay(500);        // …und zwar für eine Sekunde...
+    tone(buzzer, 300); // …spiele diesen Ton...
+    delay(500);        // …und zwar für eine Sekunde...
+    noTone(buzzer);    // Ton abschalten
   }
 }
 
@@ -150,6 +143,12 @@ void showStartScreen()
   while (true)
   {
     char key = keypad.getKey();
+
+    if (key != NULL)
+    {
+      Serial.println(key);
+    }
+
     if (key == '#')
     {
       lcd.clear();

@@ -3,17 +3,17 @@
 // include the libraries
 #include <Keypad.h>
 #include <LiquidCrystal.h>
-#include <Tone.h>
 #include "GameMode.h"
 #include "BombDefusal.h"
 #include "KingOfTheHill.h"
+#include <pcf8574.h>
+#include "pitches.h"
+#include <LiquidCrystal_I2C.h>
+
 #define pound 14
 
-//initialize the library by associating any needed LCD interface pin
-//with the arduino pin number it is connected to
-const int rs = 8, en = 9, d4 = 10, d5 = 11, d6 = 12, d7 = 13;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
+LiquidCrystal_I2C lcd(0x27, 16, 2);  // set the LCD address to 0x3F for a 16 chars and 2 line display
 
 //TODO: Remove hardcoded timer
 int Scount = 0;       // count seconds
@@ -31,10 +31,8 @@ int currentLength = 0;  //defines which number we are currently writing
 int i = 0;
 char entered[6];
 
-//led setup
-int greenLedPin = 4;
-int yellowLedPin2 = 3;
-int redLedPin3 = 2;
+//I2C Board setup
+PCF8574 ex1(0x24);
 
 
 //keypad setup
@@ -50,20 +48,48 @@ byte colPins[COLS] = { 2, 3, A5, A4 };    //definition of colomn pins
 byte rowPins[ROWS] = { A3, A2, A1, A0 };  //definition of row pins
 Keypad keypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 
+
+//button setup
+int redButton = 8;
+int blueButton = 11;
+
+//buzzer setup
+int buzzer = 6;
+
 GameMode* selectedGameMode;
 
 void setup() {
   Serial.begin(9600);
   Serial.println("NEW setup");
 
-  //set up the LCD's number of columns and rows:
+  //set up the buttons
+  pinMode(redButton, INPUT);
+  pinMode(blueButton, INPUT);
+
+  //set up the LCD
+  lcd.init();
+  lcd.backlight();
   lcd.begin(16, 2);
   lcd.clear();
   lcd.setCursor(0, 0);
-  //Print a message to the LCD.
 
+  //set up LEDs; external I2C Board
+  pinMode(ex1, 1, OUTPUT);
+  pinMode(ex1, 2, OUTPUT);
+  pinMode(ex1, 3, OUTPUT);
+  pinMode(ex1, 4, OUTPUT);
+  digitalToggle(ex1, 1);
+  digitalToggle(ex1, 2);
+  digitalToggle(ex1, 3);
+  digitalToggle(ex1, 4);
 
+  //start up
   showStartScreen();
+
+  digitalToggle(ex1, 1);
+  digitalToggle(ex1, 2);
+  digitalToggle(ex1, 3);
+  digitalToggle(ex1, 4);
 
   selectedGameMode = selectGameMode();
   lcd.clear();
@@ -72,32 +98,49 @@ void setup() {
   lcd.print(selectedGameMode->Name);
   delay(3000);
   selectedGameMode->Start();
+  delay(3000);
 
   //(*selectedGameMode).Start();
-
-  
 }
 
 void loop() {
   //set the cursor to column 0, line 1
   //(note: line 1 is the second row, since counting begins with 0):
-  lcd.clear();
-  lcd.setCursor(0, 1);
-  // print the number of seconds since reset:
-  //selectedGameMode->Start();
-  lcd.print(selectedGameMode->Name);
+  // lcd.clear();
+  // lcd.setCursor(0, 1);
+  // // print the number of seconds since reset:
+  // //selectedGameMode->Start();
+  // lcd.print(selectedGameMode->Name);
+  // delay(1000);
   // lcd.print(millis() / 1000);
+
+  //TODO: start the specific game mode
+
+  isButtonPressed(redButton);
+  isButtonPressed(blueButton);
+  delay(500);
 }
 
 
 
-
+void isButtonPressed(int button) {
+  int buttonstatus = digitalRead(button);
+  if (buttonstatus == HIGH)  // Wenn der Taster gedrückt ist...
+  {
+    tone(6, 100);  // …spiele diesen Ton...
+    delay(500);    //…und zwar für eine Sekunde...
+    tone(6, 300);  // …spiele diesen Ton...
+    delay(500);    //…und zwar für eine Sekunde...
+    noTone(6);     // Ton abschalten
+  }
+}
 
 void showStartScreen() {
+  playStartUpSound();
   lcd.print("Hello, Player!");
   lcd.setCursor(0, 1);
   lcd.print("Press # to start");
-
+  playLEDStartUpAnmiation();
   while (true) {
     char key = keypad.getKey();
     if (key == '#') {
@@ -105,6 +148,36 @@ void showStartScreen() {
       break;
     }
   }
+}
+
+void playStartUpSound() {
+  tone(buzzer, NOTE_G2);
+  delay(500);
+  noTone(buzzer);
+}
+
+void playLEDStartUpAnmiation() {
+  toggleLEDsSequentially();
+  toggleLEDs();
+  toggleLEDsSequentially();
+}
+
+void toggleLEDsSequentially() {
+  digitalToggle(ex1, 4);
+  delay(300);
+  digitalToggle(ex1, 3);
+  delay(300);
+  digitalToggle(ex1, 2);
+  delay(300);
+  digitalToggle(ex1, 1);
+  delay(300);
+}
+
+void toggleLEDs() {
+  digitalToggle(ex1, 1);
+  digitalToggle(ex1, 2);
+  digitalToggle(ex1, 3);
+  digitalToggle(ex1, 4);
 }
 
 
